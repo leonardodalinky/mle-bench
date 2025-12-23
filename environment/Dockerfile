@@ -36,13 +36,15 @@ RUN pip install virtualenv \
     && /opt/conda/bin/conda init
 
 ARG CONDA_ENV_NAME=agent
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.12
 ARG REQUIREMENTS=/tmp/requirements.txt
 
 COPY environment/requirements.txt ${REQUIREMENTS}
 
 # create conda environment and optionally install the requirements to it
-RUN /opt/conda/bin/conda create -n ${CONDA_ENV_NAME} python=${PYTHON_VERSION} -y
+RUN /opt/conda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main \
+    && /opt/conda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r \
+    && /opt/conda/bin/conda create -n ${CONDA_ENV_NAME} python=${PYTHON_VERSION} -y
 ARG INSTALL_HEAVY_DEPENDENCIES=true
 ENV INSTALL_HEAVY_DEPENDENCIES=${INSTALL_HEAVY_DEPENDENCIES}
 
@@ -50,7 +52,7 @@ ENV INSTALL_HEAVY_DEPENDENCIES=${INSTALL_HEAVY_DEPENDENCIES}
 RUN if [ "$INSTALL_HEAVY_DEPENDENCIES" = "true" ]; then \
     /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install -r /tmp/requirements.txt && \
     /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install tensorflow[and-cuda]==2.17 && \
-    /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install torch==2.2.0 torchaudio==2.2.0 torchtext==0.17.0 torchvision==0.17.0 && \
+    # /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install torch==2.2.0 torchaudio==2.2.0 torchtext==0.17.0 torchvision==0.17.0 && \
     /opt/conda/bin/conda clean -afy ; fi
 
 ENV PATH="/opt/conda/bin:${PATH}"
@@ -59,7 +61,7 @@ ENV PATH="/opt/conda/bin:${PATH}"
 
 # Install stuff for the grading server: mlebench and flask
 COPY . /mlebench
-RUN /opt/conda/bin/conda create -n mleb python=3.11 -y
+RUN /opt/conda/bin/conda create -n mleb python=${PYTHON_VERSION} -y
 RUN /opt/conda/bin/conda run -n mleb pip install flask && \
     /opt/conda/bin/conda run -n mleb pip install -e /mlebench
 

@@ -138,6 +138,8 @@ feedparser==6.0.12
     # via scievo (pyproject.toml)
 filelock==3.20.1
     # via huggingface-hub
+filetype==1.2.0
+    # via openhands-tools
 frozenlist==1.8.0
     # via
     #   aiohttp

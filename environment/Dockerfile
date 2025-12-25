@@ -79,6 +79,9 @@ COPY environment/instructions_obfuscated.txt /home/instructions_obfuscated.txt
 COPY environment/validate_submission.sh /home/validate_submission.sh
 COPY environment/entrypoint.sh /entrypoint.sh
 
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Create nonroot user; make entrypoint executable
 RUN useradd -m nonroot \
     && mkdir /home/submission \

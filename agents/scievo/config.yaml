@@ -57,3 +57,16 @@ scievo/gpt-medium-high:
     STEP_LIMIT: *step_count
     # OPENHANDS_MODEL: gpt-5-mini
     OPENHANDS_MODEL: gpt-5.1-codex-mini
+
+scievo/gemini3-medium-high:
+  start: scievo/start.sh
+  dockerfile: scievo/Dockerfile
+  kwargs_type: argparse
+  kwargs: # Args for bench.mlebench_workflow
+    data-recursion-limit: *data_recursion_limit
+    experiment-recursion-limit: *experiment_recursion_limit
+    models: gemini3-medium-high
+  env_vars:
+    TIME_LIMIT_SECS: *time_limit
+    STEP_LIMIT: *step_count
+    OPENHANDS_MODEL: gemini/gemini-2.5-flash

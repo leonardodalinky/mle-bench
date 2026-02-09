@@ -59,7 +59,7 @@ mkdir /home/submission
 # mkdir ${AGENT_DIR}/workspace
 
 # run with timeout, and print if timeout occurs
-timeout $TIME_LIMIT_SECS python bench/mlebench_workflow.py \
+timeout $TIME_LIMIT_SECS python bench_workflows/mlebench_workflow.py \
   --instructions ${AGENT_DIR}/full_instructions.txt \
   --description /home/data/description.md \
   --data /home/data/ \

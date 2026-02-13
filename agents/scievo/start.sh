@@ -63,6 +63,7 @@ timeout $TIME_LIMIT_SECS python bench_workflows/mlebench_workflow.py \
   --instructions ${AGENT_DIR}/full_instructions.txt \
   --description /home/data/description.md \
   --data /home/data/ \
+  --max-revisions 2 \
   --workspace ${CODE_DIR} \
   $@ # forward the bash arguments to aide
 if [ $? -eq 124 ]; then

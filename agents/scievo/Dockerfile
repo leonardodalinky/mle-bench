@@ -23,13 +23,15 @@ ARG MLE_BENCH_DIR=benchmarks/mlebench/mle-bench
 
 # copy just the requirements file, so that we can cache conda separately from the agent files
 COPY requirements.txt ${AGENT_DIR}/requirements.txt
+COPY ${MLE_BENCH_DIR}/agents/scievo/start.sh ${AGENT_DIR}/start.sh
 
 # Requirements for opencv
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y && apt-get remove -y tmux
 
 # create conda environment and install the requirements to it
-RUN conda run -n ${CONDA_ENV_NAME} pip install -r ${AGENT_DIR}/requirements.txt && \
-    conda run -n ${CONDA_ENV_NAME} pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 && \
+RUN conda run -n ${CONDA_ENV_NAME} pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 && \
+    conda run -n ${CONDA_ENV_NAME} pip install -r ${AGENT_DIR}/requirements.txt && \
+    conda run -n ${CONDA_ENV_NAME} pip install spacy>=3.7.0 && \
     conda clean -afy
 
 COPY ${MLE_BENCH_DIR}/agents/scievo/additional_notes.txt /home/additional_notes.txt

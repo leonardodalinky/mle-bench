@@ -4,9 +4,9 @@ vars:
   data_recursion_limit: &data_recursion_limit 512
   experiment_recursion_limit: &experiment_recursion_limit 512
 
-scievo/gemini-low-medium:
-  start: scievo/start.sh
-  dockerfile: scievo/Dockerfile
+scider/gemini-low-medium:
+  start: scider/start.sh
+  dockerfile: scider/Dockerfile
   kwargs_type: argparse
   kwargs: # Args for bench.mlebench_workflow
     data-recursion-limit: *data_recursion_limit
@@ -17,9 +17,9 @@ scievo/gemini-low-medium:
     STEP_LIMIT: *step_count
     OPENHANDS_MODEL: gemini/gemini-2.5-flash
 
-scievo/gemini-medium-high:
-  start: scievo/start.sh
-  dockerfile: scievo/Dockerfile
+scider/gemini-medium-high:
+  start: scider/start.sh
+  dockerfile: scider/Dockerfile
   kwargs_type: argparse
   kwargs: # Args for bench.mlebench_workflow
     data-recursion-limit: *data_recursion_limit
@@ -30,9 +30,9 @@ scievo/gemini-medium-high:
     STEP_LIMIT: *step_count
     OPENHANDS_MODEL: gemini/gemini-2.5-flash
 
-scievo/gpt-low-medium:
-  start: scievo/start.sh
-  dockerfile: scievo/Dockerfile
+scider/gpt-low-medium:
+  start: scider/start.sh
+  dockerfile: scider/Dockerfile
   kwargs_type: argparse
   kwargs: # Args for bench.mlebench_workflow
     data-recursion-limit: *data_recursion_limit
@@ -44,9 +44,9 @@ scievo/gpt-low-medium:
     # OPENHANDS_MODEL: gpt-5-mini
     OPENHANDS_MODEL: gpt-5.1-codex-mini
 
-scievo/gpt-medium-high:
-  start: scievo/start.sh
-  dockerfile: scievo/Dockerfile
+scider/gpt-medium-high:
+  start: scider/start.sh
+  dockerfile: scider/Dockerfile
   kwargs_type: argparse
   kwargs: # Args for bench.mlebench_workflow
     data-recursion-limit: *data_recursion_limit
@@ -58,9 +58,9 @@ scievo/gpt-medium-high:
     # OPENHANDS_MODEL: gpt-5-mini
     OPENHANDS_MODEL: gpt-5.1-codex-mini
 
-scievo/gemini3-medium-high:
-  start: scievo/start.sh
-  dockerfile: scievo/Dockerfile
+scider/gemini3-medium-high:
+  start: scider/start.sh
+  dockerfile: scider/Dockerfile
   kwargs_type: argparse
   kwargs: # Args for bench.mlebench_workflow
     data-recursion-limit: *data_recursion_limit

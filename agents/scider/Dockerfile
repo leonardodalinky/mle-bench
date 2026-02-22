@@ -1,6 +1,6 @@
 FROM mlebench-env
 
-# NOTE: We assume that this is a submodule, and the build content is in the root dir of SciEvo
+# NOTE: We assume that this is a submodule, and the build content is in the root dir of SciDER
 
 # where to put submission.csv, will be extracted
 ARG SUBMISSION_DIR
@@ -23,7 +23,7 @@ ARG MLE_BENCH_DIR=benchmarks/mlebench/mle-bench
 
 # copy just the requirements file, so that we can cache conda separately from the agent files
 COPY requirements.txt ${AGENT_DIR}/requirements.txt
-COPY ${MLE_BENCH_DIR}/agents/scievo/start.sh ${AGENT_DIR}/start.sh
+COPY ${MLE_BENCH_DIR}/agents/scider/start.sh ${AGENT_DIR}/start.sh
 
 # Requirements for opencv
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y && apt-get remove -y tmux
@@ -34,11 +34,11 @@ RUN conda run -n ${CONDA_ENV_NAME} pip install torch==2.4.1 torchvision==0.19.1 
     conda run -n ${CONDA_ENV_NAME} pip install spacy>=3.7.0 && \
     conda clean -afy
 
-COPY ${MLE_BENCH_DIR}/agents/scievo/additional_notes.txt /home/additional_notes.txt
+COPY ${MLE_BENCH_DIR}/agents/scider/additional_notes.txt /home/additional_notes.txt
 
 # put all the agent files in the expected location
-COPY scievo/ ${AGENT_DIR}/SciEvo/scievo/
-COPY bench_workflows/ ${AGENT_DIR}/SciEvo/bench_workflows/
-COPY .env  ${AGENT_DIR}/SciEvo/
+COPY scider/ ${AGENT_DIR}/SciDER/scider/
+COPY bench_workflows/ ${AGENT_DIR}/SciDER/bench_workflows/
+COPY .env  ${AGENT_DIR}/SciDER/
 
-WORKDIR ${AGENT_DIR}/SciEvo
+WORKDIR ${AGENT_DIR}/SciDER

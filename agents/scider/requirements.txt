@@ -1,0 +1,25 @@
+# Runtime deps for SciDER inside the mle-bench agent container.
+# Mirrors pyproject.toml's `dependencies` block — torch / torchvision are
+# installed separately in the Dockerfile (CUDA-specific wheels).
+beautifulsoup4>=4.14.2
+claude-agent-sdk>=0.1.33
+feedparser>=6.0.12
+huggingface-hub>=0.32.0
+filetype>=1.2.0
+jinja2>=3.1.6
+json-repair>=0.53.0
+langgraph>=1.0.2
+litellm>=1.79.0,<1.80.0
+loguru>=0.7.3
+numpy>=2.0
+pandas>=2.0
+pillow>=12.0.0
+pydantic>=2.12.3
+pyfunctional>=1.5.0
+python-toon>=0.1.2
+pyyaml>=6.0.3
+rich>=14.2.0
+tiktoken>=0.12.0
+ddgs>=9.13.0
+tavily-python>=0.5.0
+matplotlib>=3.10.8

@@ -58,14 +58,28 @@ printf "\nCOMPETITION INSTRUCTIONS\n------\n\n" >> ${AGENT_DIR}/full_instruction
 mkdir /home/submission
 # mkdir ${AGENT_DIR}/workspace
 
-# run with timeout, and print if timeout occurs
-timeout $TIME_LIMIT_SECS python bench_workflows/mlebench_workflow.py \
+# Load API keys from .env (baked into the image by the agent Dockerfile).
+# Without this, every model role gets skipped because
+# ``ModelCatalog.is_available()`` can't find GEMINI_API_KEY /
+# ANTHROPIC_API_KEY / OPENAI_API_KEY, and the workflow crashes with
+# "Model `data` not found".
+if [ -f "${AGENT_DIR}/SciDER/.env" ]; then
+  set -a
+  source "${AGENT_DIR}/SciDER/.env"
+  set +a
+else
+  echo "WARNING: ${AGENT_DIR}/SciDER/.env not found — model roles will fail to register"
+fi
+
+# run with timeout, and print if timeout occurs. ``python -m`` is used so
+# sys.path resolution matches how the workflow is run outside Docker.
+timeout $TIME_LIMIT_SECS python -m bench_workflows.mlebench_workflow \
   --instructions ${AGENT_DIR}/full_instructions.txt \
   --description /home/data/description.md \
   --data /home/data/ \
   --max-revisions 2 \
   --workspace ${CODE_DIR} \
-  $@ # forward the bash arguments to aide
+  "$@" # forward the bash arguments from config.yaml's `kwargs`
 if [ $? -eq 124 ]; then
   echo "Timed out after $TIME_LIMIT"
 fi

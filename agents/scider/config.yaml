@@ -1,72 +1,20 @@
 vars:
   time_limit: &time_limit 86400 # 3600 * 24 hours
-  step_count: &step_count 2000 # empirically, we find that the agent does 500 steps in ~6 hours, so 2000 steps should be about right for 24 hours
+  step_count: &step_count 2000 # empirically, 500 steps in ~6 hours → 2000 for 24h
   data_recursion_limit: &data_recursion_limit 512
   experiment_recursion_limit: &experiment_recursion_limit 512
 
-scider/gemini-low-medium:
+# Single agent entry. Model assignments are NOT selected via kwargs anymore —
+# edit ``bench_workflows/model_configs/mlebench_roles.yaml`` in the SciDER
+# source tree to swap models. This matches the airsbench / astrovisbench
+# refactor and removes the combinatorial explosion of preset-named entries.
+scider:
   start: scider/start.sh
   dockerfile: scider/Dockerfile
   kwargs_type: argparse
-  kwargs: # Args for bench.mlebench_workflow
+  kwargs: # args for bench_workflows.mlebench_workflow
     data-recursion-limit: *data_recursion_limit
     experiment-recursion-limit: *experiment_recursion_limit
-    models: gemini-low-medium
   env_vars:
     TIME_LIMIT_SECS: *time_limit
     STEP_LIMIT: *step_count
-    OPENHANDS_MODEL: gemini/gemini-2.5-flash
-
-scider/gemini-medium-high:
-  start: scider/start.sh
-  dockerfile: scider/Dockerfile
-  kwargs_type: argparse
-  kwargs: # Args for bench.mlebench_workflow
-    data-recursion-limit: *data_recursion_limit
-    experiment-recursion-limit: *experiment_recursion_limit
-    models: gemini-medium-high
-  env_vars:
-    TIME_LIMIT_SECS: *time_limit
-    STEP_LIMIT: *step_count
-    OPENHANDS_MODEL: gemini/gemini-2.5-flash
-
-scider/gpt-low-medium:
-  start: scider/start.sh
-  dockerfile: scider/Dockerfile
-  kwargs_type: argparse
-  kwargs: # Args for bench.mlebench_workflow
-    data-recursion-limit: *data_recursion_limit
-    experiment-recursion-limit: *experiment_recursion_limit
-    models: gpt-low-medium
-  env_vars:
-    TIME_LIMIT_SECS: *time_limit
-    STEP_LIMIT: *step_count
-    # OPENHANDS_MODEL: gpt-5-mini
-    OPENHANDS_MODEL: gpt-5.1-codex-mini
-
-scider/gpt-medium-high:
-  start: scider/start.sh
-  dockerfile: scider/Dockerfile
-  kwargs_type: argparse
-  kwargs: # Args for bench.mlebench_workflow
-    data-recursion-limit: *data_recursion_limit
-    experiment-recursion-limit: *experiment_recursion_limit
-    models: gpt-medium-high
-  env_vars:
-    TIME_LIMIT_SECS: *time_limit
-    STEP_LIMIT: *step_count
-    # OPENHANDS_MODEL: gpt-5-mini
-    OPENHANDS_MODEL: gpt-5.1-codex-mini
-
-scider/gemini3-medium-high:
-  start: scider/start.sh
-  dockerfile: scider/Dockerfile
-  kwargs_type: argparse
-  kwargs: # Args for bench.mlebench_workflow
-    data-recursion-limit: *data_recursion_limit
-    experiment-recursion-limit: *experiment_recursion_limit
-    models: gemini3-medium-high
-  env_vars:
-    TIME_LIMIT_SECS: *time_limit
-    STEP_LIMIT: *step_count
-    OPENHANDS_MODEL: gemini/gemini-2.5-flash

@@ -36,7 +36,6 @@ table below.
 | obfuscation-gpt4o-aide              | GPT-4o (AIDE) with obfuscated descriptions                                 |
 | scaffolding-gpt4o-aide              | GPT-4o on AIDE scaffolding                                                 |
 | scaffolding-gpt4o-mlab              | GPT-4o on MLAB scaffolding                                                 |
-| scaffolding-gpt4o-opendevin         | GPT-4o on OpenDevin scaffolding                                            |
 | o1-preview-R&D-Agent                | o1-preview on R&D-Agent scaffolding, 12 vCPUs, 220GB of RAM, and 1 V100 GPU |
 | deepseek-r1-ML-Master               | Deepseek-R1 on ML-Master scaffolding, 12 hours, 36 vCPUs, 512GB of RAM, and 1 A100 GPU|
 | multi-agent-Neo                     | Multi-Agent Ensemble of LLMs (GPT 4.1 and Claude Sonnet 4.0) on NEO scaffolding, 36 hours, 24 vCPUs, 144GB of RAM, and 1 A100 GPU|

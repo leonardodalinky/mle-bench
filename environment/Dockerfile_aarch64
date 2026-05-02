@@ -1,3 +1,22 @@
+# aarch64 (ARM64) variant of the mlebench base image.
+# Differences vs. the x86_64 Dockerfile:
+#   * Miniconda installer URL uses the Linux-aarch64 asset.
+#   * PyTorch trio (torch / torchvision / torchaudio) is pre-installed
+#     from pytorch.org's cu124 aarch64 index so the Python side has GPU
+#     support on SBSA hosts (Grace Hopper, Graviton-with-GPU, etc.).
+#     Requires matching versions — 2.5.1 / 0.20.1 / 2.5.1 is the earliest
+#     trio with full aarch64 cu124 coverage, so ``environment/requirements.txt``
+#     was bumped to those pins.
+# Shared with the x86_64 Dockerfile:
+#   * TensorFlow is bumped to 2.19.0 (was 2.17.0) — 2.19's ``[and-cuda]``
+#     extra pins ``nvidia-cudnn-cu12==9.3.0.75`` + ``nvidia-nccl-cu12==2.23.4``,
+#     the first versions of both that ship aarch64 wheels. TF 2.17/2.18's
+#     cuDNN/NCCL pins had no aarch64 wheels on PyPI.
+#   * ``tensorpack==0.11`` was dropped from requirements.txt — the library
+#     has been unmaintained since 2021 and is not compatible with TF 2.19.
+# Build on an aarch64 host, e.g.:
+#   docker build --platform=linux/arm64 -t mlebench-env \
+#       -f environment/Dockerfile_aarch64 .
 FROM ubuntu:20.04
 
 # Avoid interactive dialog from apt-get and other packages requiring configuration
@@ -30,7 +49,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* # removes cache
 
 RUN pip install virtualenv \
-    && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
+    && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /tmp/miniconda.sh \
     && bash /tmp/miniconda.sh -b -p /opt/conda \
     && rm /tmp/miniconda.sh \
     && /opt/conda/bin/conda init
@@ -51,12 +70,22 @@ RUN /opt/conda/bin/conda tos accept --override-channels --channel https://repo.a
 ARG INSTALL_HEAVY_DEPENDENCIES=true
 ENV INSTALL_HEAVY_DEPENDENCIES=${INSTALL_HEAVY_DEPENDENCIES}
 
-# The rest of your Dockerfile. TensorFlow is pinned to 2.19.0 (up from
-# 2.17.0) because that is the first release whose ``[and-cuda]`` extra
-# uses ``nvidia-cudnn-cu12==9.3.0.75`` and ``nvidia-nccl-cu12==2.23.4``,
-# both of which ship aarch64 wheels — so the same pin works on the
-# Dockerfile_aarch64 build.
+# Install requirements. Two aarch64-specific pre-install steps:
+#
+# 1. PyTorch's default PyPI wheel on aarch64 is CPU-only, so we pre-install
+#    the torch / torchvision / torchaudio trio from pytorch.org's cu124
+#    aarch64 index BEFORE the requirements.txt step. The subsequent
+#    ``pip -r`` sees these CUDA-enabled wheels as already satisfied and
+#    doesn't downgrade them.
+#
+# After requirements.txt, we also install ``tensorflow[and-cuda]==2.19``
+# to pull in the nvidia-* CUDA libs that ship aarch64 wheels at this TF
+# version (cudnn 9.3.0.75 + nccl 2.23.4, both with manylinux2014_aarch64
+# wheels — the reason we require TF ≥ 2.19 on aarch64).
 RUN if [ "$INSTALL_HEAVY_DEPENDENCIES" = "true" ]; then \
+    /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install \
+        --index-url https://download.pytorch.org/whl/cu124 \
+        torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 && \
     /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install -r /tmp/requirements.txt && \
     /opt/conda/bin/conda run -n ${CONDA_ENV_NAME} pip install tensorflow[and-cuda]==2.19 && \
     /opt/conda/bin/conda clean -afy ; fi

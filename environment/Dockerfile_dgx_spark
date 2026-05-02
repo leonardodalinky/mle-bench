@@ -1,0 +1,160 @@
+# DGX Spark (GB10 / Blackwell sm_121) variant of the mlebench base image.
+#
+# Why this exists:
+#   DGX Spark uses the GB10 Grace Blackwell superchip, compute capability
+#   sm_121. The ubuntu:20.04 + miniconda + pip-installed torch cu124/cu128
+#   stack in ``Dockerfile_aarch64`` compiles torch kernels up to sm_90
+#   (Hopper) — GB10 falls off the end and the image either errors with
+#   ``no kernel image is available for execution on the device`` or
+#   silently falls back to CPU.
+#
+#   This Dockerfile uses NVIDIA's NGC PyTorch container as base. NGC's
+#   system Python at ``/usr/bin/python3`` (CPython 3.12) has
+#   ``torch==2.10.0a0+...nv25.12`` + CUDA 13.0 pre-wired with sm_121
+#   kernels baked in. We use that system Python directly as the "agent"
+#   environment — no conda, no bridging, no version juggling.
+#
+#   To keep the scider agent Dockerfile and start.sh UNMODIFIED (they
+#   call ``conda run -n agent`` / ``conda activate agent`` /
+#   ``conda clean``), we install a shell-script FAKE ``conda`` that
+#   routes all operations to the system Python. This is the minimum
+#   compatibility shim needed to reuse the agent-side tooling without
+#   forking it.
+#
+# Version pin:
+#   ``nvcr.io/nvidia/pytorch:25.12-py3`` (Jan 2026) is the first NGC tag
+#   with working GPU detection on GB10. 25.09-py3 is broken; older tags
+#   are pre-Blackwell. References:
+#     https://forums.developer.nvidia.com/t/effective-pytorch-and-cuda/348230
+#     https://github.com/unslothai/unsloth/issues/3733
+#
+# Build:
+#   cd benchmarks/mlebench/mle-bench
+#   docker build --platform=linux/arm64 -t mlebench-env \
+#       -f environment/Dockerfile_dgx_spark .
+
+FROM nvcr.io/nvidia/pytorch:25.12-py3
+
+# Avoid interactive dialog from apt-get and other packages requiring configuration
+ENV DEBIAN_FRONTEND=noninteractive
+
+# install basic packages the scider agent and start.sh expect. Many are
+# already in NGC — apt-get is idempotent so pre-installed packages no-op.
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    nano \
+    unzip \
+    zip \
+    p7zip-full \
+    build-essential \
+    openssh-server \
+    tmux \
+    gettext \
+    sudo \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ─── Fake conda wrapper ────────────────────────────────────────────────
+# scider/agents/scider/Dockerfile does ``conda run -n agent pip install``
+# and scider/agents/scider/start.sh does
+# ``eval "$(conda shell.bash hook)"`` + ``conda activate agent``. We
+# don't actually want a conda env here — NGC's system Python already has
+# the GPU-capable torch. This shim satisfies the ``conda ...`` calls by
+# routing them to the system interpreter.
+RUN mkdir -p /opt/conda/bin /opt/conda/envs/agent/bin /opt/conda/envs/mleb/bin
+
+# Install the fake conda wrapper (source lives at
+# environment/fake_conda.sh next to this Dockerfile — see that file for
+# the routing rules). Keeping the script in a separate file avoids
+# having to escape an embedded shell ``case`` statement inside a
+# Dockerfile heredoc.
+COPY environment/fake_conda.sh /opt/conda/bin/conda
+RUN chmod +x /opt/conda/bin/conda && \
+    ln -s /usr/bin/python3 /opt/conda/bin/python && \
+    ln -s /usr/bin/python3 /opt/conda/bin/python3 && \
+    ln -s /usr/bin/pip3    /opt/conda/bin/pip && \
+    ln -s /usr/bin/pip3    /opt/conda/bin/pip3 && \
+    ln -s /usr/bin/python3 /opt/conda/envs/agent/bin/python && \
+    ln -s /usr/bin/python3 /opt/conda/envs/agent/bin/python3 && \
+    ln -s /usr/bin/pip3    /opt/conda/envs/agent/bin/pip && \
+    ln -s /usr/bin/python3 /opt/conda/envs/mleb/bin/python && \
+    ln -s /usr/bin/python3 /opt/conda/envs/mleb/bin/python3 && \
+    ln -s /usr/bin/pip3    /opt/conda/envs/mleb/bin/pip
+
+ARG CONDA_ENV_NAME=agent
+
+# DGX-Spark-specific requirements. ``requirements_dgx_spark.txt`` has
+# loosened version bounds (``>=`` instead of ``==``) so pip can keep
+# NGC's pre-installed torch 2.10 sm_121 / numpy 2.x / etc. instead of
+# downgrading to mlebench's old pins. See that file's header for the
+# strip list and bump rationale.
+COPY environment/requirements_dgx_spark.txt /tmp/requirements_dgx_spark.txt
+
+ARG INSTALL_HEAVY_DEPENDENCIES=true
+ENV INSTALL_HEAVY_DEPENDENCIES=${INSTALL_HEAVY_DEPENDENCIES}
+
+# Install mlebench heavy deps into NGC's system Python.
+#
+# ``--ignore-installed blinker`` works around NGC's apt-installed
+# blinker having no RECORD file (blocks flask install otherwise).
+# ``--upgrade-strategy=only-if-needed`` means pip keeps NGC's existing
+# versions when they already satisfy the ``>=`` bound.
+# Pre-emptively convert NGC's apt-installed Python packages that lack a
+# RECORD file into pip-tracked versions. Without this, any downstream
+# ``pip install`` (including the scider agent image's own requirements)
+# that tries to upgrade one of these will fail with
+# ``error: uninstall-no-record-file``. Known offenders so far:
+# ``blinker`` (tripped the flask install below) and ``pyjwt`` (tripped
+# the scider agent's ``claude-agent-sdk`` install). Add more names to
+# this list if/when other ``error: uninstall-no-record-file`` errors
+# surface during scider agent build.
+RUN pip install --ignore-installed blinker pyjwt
+
+RUN if [ "$INSTALL_HEAVY_DEPENDENCIES" = "true" ]; then \
+    pip install --upgrade-strategy=only-if-needed -r /tmp/requirements_dgx_spark.txt && \
+    python -c "import torch; print('torch', torch.__version__, 'arch list:', torch.cuda.get_arch_list(), 'at', torch.__file__)" ; fi
+
+ENV PATH="/opt/conda/bin:${PATH}"
+
+# Keras 3 picks its backend at import; default is tensorflow which runs
+# CPU-only here. With NGC's GPU torch on hand, torch backend is saner.
+ENV KERAS_BACKEND=torch
+
+# Install mlebench and flask for the grading server. Into system Python
+# (same env as agent), so /opt/conda/envs/mleb/bin/python (which is a
+# symlink to /usr/bin/python3) sees them.
+COPY . /mlebench
+RUN pip install flask && pip install -e /mlebench
+
+# Reset DEBIAN_FRONTEND
+ENV DEBIAN_FRONTEND=
+
+# Make private directory (root) owner-only. Grading server will be added
+# here later; the test-set answers arrive via a mounted docker volume.
+RUN mkdir /private && chmod 700 /private
+
+# Copy over relevant files
+COPY environment/grading_server.py /private/grading_server.py
+COPY environment/instructions.txt /home/instructions.txt
+COPY environment/instructions_obfuscated.txt /home/instructions_obfuscated.txt
+COPY environment/validate_submission.sh /home/validate_submission.sh
+COPY environment/entrypoint.sh /entrypoint.sh
+
+# install uv (multi-arch image)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Create nonroot user; make entrypoint executable
+RUN useradd -m nonroot \
+    && mkdir /home/submission \
+    && chmod +x /entrypoint.sh
+
+WORKDIR /home
+
+# IMPORTANT: This needs to run as root! Downstream Dockerfiles must not
+# change the default USER for when the container starts.
+ENTRYPOINT ["/entrypoint.sh"]
